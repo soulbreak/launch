@@ -36,7 +36,7 @@ class Job(object):
         :param kwargs:
         :return:
         """
-        logging.info("calling {}".format(self.name))
+        logging.debug("Calling {}".format(self.name))
         self.status = Status.RUNNING
         if self.action == Action.START:
             rc = self.start(*args, **kwargs)

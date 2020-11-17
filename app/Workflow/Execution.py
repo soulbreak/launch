@@ -1,14 +1,10 @@
-import logging
 import threading, queue
-import time
-from DataStructure import Graph
-from Node import Job, Status, Action
-import random
-import sys
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
-
+from Workflow.Structure import Graph
+from Node import Status, Action
+import logging
+log = logging.getLogger(__name__
+                        )
 q = queue.Queue()
-
 
 class ThreadPool:
     """Pool of threads consuming tasks from a queue"""
@@ -16,7 +12,6 @@ class ThreadPool:
         self.queue = queue.Queue(num_threads)
         for _ in range(num_threads):
             Worker(self.queue)
-
 
     def add_task(self, func, *args, **kargs):
         """Add a task to the queue"""
@@ -31,7 +26,9 @@ class Worker(threading.Thread):
     def __init__(self, tasks):
         super(Worker, self).__init__()
         self.tasks = tasks
+        self.name = threading.current_thread().name
         self.daemon = True
+        log.debug("New thread created")
         self.start()
 
     def run(self):
@@ -44,29 +41,13 @@ class Worker(threading.Thread):
             finally:
                 self.tasks.task_done()
 
-
-
-
-if __name__ == '__main__':
-    job = Job("cool")
-    graph = Graph()
-    A1 = Job('A1')
-    A2 = Job('A2')
-    A3 = Job('A3')
-    A4 = Job('A4')
-    A5 = Job('A5')
-    graph.add_dependencies(A1,[])
-    graph.add_dependencies(A1,[A2,A3])
-    graph.add_dependencies(A3,[A4])
-    graph.add_dependencies(A3,[A5])
-    graph.add_dependencies(A2,[A5])
+def run(graph: Graph):
     pool = ThreadPool(20)
     while graph.node_end.status != Status.ENDED_OK:
         jobs = graph.get_jobs_ready()
         if jobs:
-            [setattr(job,'status', Status.RUNNING) for job in jobs]
+            [setattr(job, 'status', Status.RUNNING) for job in jobs]
             [setattr(job, 'action', Action.START) for job in jobs]
-            logging.info(f"Launching jobs : {jobs}")
+            log.info(f"Launching jobs : {jobs}")
             for job in jobs:
                 pool.add_task(job)
-            # To do need to check if workflow is blocked
