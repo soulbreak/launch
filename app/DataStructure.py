@@ -11,7 +11,7 @@ class Graph:
         self.reverse_dependencies = defaultdict(list)
         self.node_start = Job("node_start", Status.READY)
         self.node_end = Job("node_end", Status.NOT_READY)
-        self.ready = [self.node_start]
+
 
     def _get_dependencies_list(self, node: Job) -> List[Job]:
         if self.reversed is False:
@@ -105,33 +105,11 @@ class Graph:
                     return True
         return False
 
-    def get_job_ready(self) -> List[Job]:
-        return self.ready
-
-    def set_ready(self, jobs: List[Job]) -> None:
-        logging.info("New jobs ready : {}".format(jobs))
-        self.ready.extend(jobs)
-
-    def set_done(self, jobs: List[Job]) -> None:
-        for job in jobs:
-            self.ready.remove(job)
-            # Job has no dependency
-            if job not in self.dependencies:
-                return
-            for dep in self.dependencies[job]:
-                logging.info("{} done : Checking reverse_dependency of {}".format(job, dep))
-                dep_ready = True
-                if dep not in self.reverse_dependencies:
-                    logging.warning("{} has no reverse dependencies")
-                    continue
-                for rdep in self.reverse_dependencies[job]:
-                    if rdep.status != Status.ENDED_OK:
-                        logging.debug("{} is a reverse dependency of {} not ready".format(rdep, dep))
-                        continue
-                self.set_ready([dep])
-
-
-
+    def get_jobs_ready(self) -> List[Job]:
+        for job, rdeps in self.reverse_dependencies.items():
+            if(all(rdep.status == Status.ENDED_OK for rdep in rdeps)):
+                job.status = Status.READY
+        return [node for node in self.get_all_nodes(self.node_start) if node.status == Status.READY]
 
     def is_dependency_of(self, current: Job, seek: Job) -> bool:
         """
@@ -158,8 +136,8 @@ class Graph:
 
         return False
 
-
-    def DFS(self, current: Job=None):
+    def get_all_nodes(self, current: Job=None) -> List[Job]:
+        list = []
         if current is None:
             current = self.node_start
         visited = dict()
@@ -171,12 +149,13 @@ class Graph:
             stack.pop()
 
             if current not in visited.keys():
-                print(current, end=' ')
+                list.append(current)
                 visited[current] = True
 
             for node in self._get_dependencies_list(current):
                 if node not in visited.keys():
                     stack.append(node)
+        return list
 
 
 

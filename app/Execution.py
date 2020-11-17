@@ -2,7 +2,7 @@ import logging
 import threading, queue
 import time
 from DataStructure import Graph
-from Node import Job, Status
+from Node import Job, Status, Action
 import random
 import sys
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -48,7 +48,6 @@ class Worker(threading.Thread):
 
 
 if __name__ == '__main__':
-    logging.info('in')
     job = Job("cool")
     graph = Graph()
     A1 = Job('A1')
@@ -63,5 +62,11 @@ if __name__ == '__main__':
     graph.add_dependencies(A2,[A5])
     pool = ThreadPool(20)
     while graph.node_end.status != Status.ENDED_OK:
-        for job in graph.get_job_ready():
-            pool.add_task(job)
+        jobs = graph.get_jobs_ready()
+        if jobs:
+            [setattr(job,'status', Status.RUNNING) for job in jobs]
+            [setattr(job, 'action', Action.START) for job in jobs]
+            logging.info(f"Launching jobs : {jobs}")
+            for job in jobs:
+                pool.add_task(job)
+            # To do need to check if workflow is blocked

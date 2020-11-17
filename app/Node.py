@@ -6,7 +6,7 @@ class Status(Enum):
     READY = 1
     RUNNING = 2
     FAILED = 3
-    ENDED_OK = 3
+    ENDED_OK = 4
 
 class Action(Enum):
     START = 0
@@ -29,53 +29,88 @@ class Job(object):
         self.stop_cmd = stop_cmd
         self.check_cmd = check_cmd
 
-
-
-    def __call__(self, *args, **kwargs) -> ReturnCode:
+    def __call__(self, *args, **kwargs) -> Status:
         """
         Return 0 if the action occured without issue
         :param args:
         :param kwargs:
         :return:
         """
+        logging.info("calling {}".format(self.name))
+        self.status = Status.RUNNING
         if self.action == Action.START:
-            return self.start(*args, **kwargs)
+            rc = self.start(*args, **kwargs)
         elif self.action == Action.STOP:
-            return self.stop(*args, **kwargs)
+            rc = self.stop(*args, **kwargs)
         elif self.action == Action.CHECK:
-            return self.check(*args, **kwargs)
+            rc = self.standalone_check(*args, **kwargs)
         else:
             raise RuntimeError("Unsupported action on {}".format(self.name))
-        logging.info("call {}".format(self.name))
+        if rc == ReturnCode.OK:
+            self.status = Status.ENDED_OK
+        else:
+            self.status = Status.FAILED
+
+        return self.status
+
 
     def start(self, *args, **kwargs) -> ReturnCode:
-        rc = self.check()
-        if rc == 0:
+        """
+        Check, start the job if needed, re-check the result
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        rc = self.standalone_check()
+        if rc == ReturnCode.OK:
             logging.info("{} already started".format(self.__repr__()))
-        elif rc == 1:
+            return ReturnCode.OK
+        elif rc == ReturnCode.KO:
             logging.info("starting {}".format(self.__repr__()))
-        elif rc == 255:
-            logging.info("{} cannot be started with an unexpected check return code = \"{}\"".format(self.__repr__()))
+        elif rc == ReturnCode.UNKNOWN:
+            logging.info("{} cannot be started with an unexpected check return code = \"{}\"".format(
+                self.__repr__(), rc))
         else:
-            raise RuntimeError("{} cannot be stopped with an unexpected check return code = \"{}\"".format(rc))
-        return self.check()
+            logging.exception("{} cannot be stopped with an unexpected check return code = \"{}\"".format(
+                self.__repr__(), rc))
+        return ReturnCode.OK if self.standalone_check() == ReturnCode.OK else 1
 
     def stop(self, *args, **kwargs) -> ReturnCode:
-        rc = self.check()
-        if rc == 0:
+        """
+        Check, stop the job if needed, re-check the result
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        rc = self.standalone_check()
+        if rc == ReturnCode.OK:
             logging.info("stopping {}".format(self.__repr__()))
-        elif rc == 1:
+        elif rc == ReturnCode.KO:
             logging.info("{} already stopped".format(self.__repr__()))
-        elif rc == 255:
-            logging.info("{} cannot be stopped with an unexpected check return code = \"{}\"".format(self.__repr__()))
+            return ReturnCode.OK
+        elif rc == ReturnCode.UNKNOWN:
+            logging.info("{} cannot be stopped with an unexpected check return code = \"{}\"".format(
+                self.__repr__(), rc))
         else:
-            raise RuntimeError("{} cannot be stopped with an unexpected check return code = \"{}\"".format(rc))
-        return self.check()
+            logging.exception("{} cannot be stopped with an unexpected check return code = \"{}\"".format(
+                self.__repr__(), rc))
+
+        return ReturnCode.OK if self.standalone_check() == ReturnCode.KO else 1
 
     def check(self, *args, **kwargs) -> ReturnCode:
+        """
+        Check
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        return ReturnCode.OK if self.standalone_check() == ReturnCode.KO else 1
+
+    def standalone_check(self, *args, **kwargs) -> ReturnCode:
         rc = ReturnCode.UNKNOWN
-        logging.info("checking {}".format(self.name))
+        logging.info("Checking {}".format(self.name))
         rc = ReturnCode.OK
+        logging.info("Status {} = {}".format(self.name, rc))
         return rc
 
     def __repr__(self):
