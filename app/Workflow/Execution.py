@@ -2,8 +2,7 @@ import threading, queue
 from Workflow.Structure import Graph
 from Node import Status, Action
 import logging
-log = logging.getLogger(__name__
-                        )
+log = logging.getLogger()
 q = queue.Queue()
 
 class ThreadPool:
@@ -11,7 +10,8 @@ class ThreadPool:
     def __init__(self, num_threads=0):
         self.queue = queue.Queue(num_threads)
         for _ in range(num_threads):
-            Worker(self.queue)
+            t = Worker(self.queue)
+            log.debug(f"Creating new thread {t}")
 
     def add_task(self, func, *args, **kargs):
         """Add a task to the queue"""
@@ -25,16 +25,19 @@ class Worker(threading.Thread):
     """Thread executing tasks from a given tasks queue"""
     def __init__(self, tasks):
         super(Worker, self).__init__()
+
         self.tasks = tasks
         self.name = threading.current_thread().name
+
         self.daemon = True
-        log.debug("New thread created")
         self.start()
 
     def run(self):
+
         while True:
             func, args, kargs = self.tasks.get()
             try:
+                log.debug("New thread run")
                 func(*args, **kargs)
             except Exception as e:
                 print(e)
@@ -42,7 +45,7 @@ class Worker(threading.Thread):
                 self.tasks.task_done()
 
 def run(graph: Graph):
-    pool = ThreadPool(20)
+    pool = ThreadPool(4)
     while graph.node_end.status != Status.ENDED_OK:
         jobs = graph.get_jobs_ready()
         if jobs:
