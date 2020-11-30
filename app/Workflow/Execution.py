@@ -1,9 +1,10 @@
 import threading, queue
 from Workflow.Structure import Graph
-from Node import Status, Action
+from Node import State, Action
 import logging
 log = logging.getLogger()
 q = queue.Queue()
+
 
 class ThreadPool:
     """Pool of threads consuming tasks from a queue"""
@@ -20,6 +21,7 @@ class ThreadPool:
     def wait_completion(self):
         """Wait for completion of all the tasks in the queue"""
         self.queue.join()
+
 
 class Worker(threading.Thread):
     """Thread executing tasks from a given tasks queue"""
@@ -46,10 +48,10 @@ class Worker(threading.Thread):
 
 def run(graph: Graph):
     pool = ThreadPool(4)
-    while graph.node_end.status != Status.ENDED_OK:
+    while graph.node_end.state != State.ENDED_OK:
         jobs = graph.get_jobs_ready()
         if jobs:
-            [setattr(job, 'status', Status.RUNNING) for job in jobs]
+            [setattr(job, 'status', State.RUNNING) for job in jobs]
             [setattr(job, 'action', Action.START) for job in jobs]
             log.info(f"Launching jobs : {jobs}")
             for job in jobs:

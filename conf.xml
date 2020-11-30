@@ -1,0 +1,42 @@
+<root>
+
+
+    <node name="TEST1">
+        <start_cmd>
+            <BlkCmd>
+                <Cmd level="1">
+                    <stdin><![CDATA[echo "start1"]]></stdin>
+                    <on_success>
+                        <BlkCmd>
+                            <Cmd level="1">
+                                <stdin><![CDATA[echo "start1"]]></stdin>
+                            </Cmd>
+                        </BlkCmd>
+                    </on_success>
+                    <on_failure></on_failure>
+                    <always></always>
+                </Cmd>
+            </BlkCmd>
+        </start_cmd>
+        <stop_cmd level="1">
+            <BlkCmd>
+                <Cmd level="1">
+                    <stdin><![CDATA[echo "stop1"]]></stdin>
+                    <on_success></on_success>
+                    <on_failure></on_failure>
+                    <always></always>
+                </Cmd>
+            </BlkCmd>
+        </stop_cmd>
+        <status_cmd>
+           <BlkCmd>
+                <Cmd level="1">
+                    <stdin><![CDATA[echo "status"]]></stdin>
+                    <on_success></on_success>
+                    <on_failure></on_failure>
+                    <always></always>
+                </Cmd>
+            </BlkCmd>
+        </status_cmd>
+    </node>
+</root>

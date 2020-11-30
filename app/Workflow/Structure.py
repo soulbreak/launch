@@ -1,5 +1,5 @@
 from collections import defaultdict
-from Node import Job, Status
+from Node import Job, State
 import logging
 from typing import List
 
@@ -9,8 +9,8 @@ class Graph:
         self.reversed = False
         self.dependencies = defaultdict(list)
         self.reverse_dependencies = defaultdict(list)
-        self.node_start = Job("node_start", Status.READY)
-        self.node_end = Job("node_end", Status.NOT_READY)
+        self.node_start = Job("node_start", State.READY)
+        self.node_end = Job("node_end", State.NOT_READY)
 
     def _get_dependencies_list(self) -> List[Job]:
         if self.reversed is False:
@@ -96,10 +96,10 @@ class Graph:
         Set job as READY if all reverse dependencies are in status ENDED_OK
         """
         for job, rdeps in self._get_reverse_dependencies_list().items():
-            if job.status == Status.NOT_READY:
-                if(all(rdep.status == Status.ENDED_OK for rdep in rdeps)):
-                    job.status = Status.READY
-        return [node for node in self.get_all_nodes(self.node_start) if node.status == Status.READY]
+            if job.state == State.NOT_READY:
+                if(all(rdep.state == State.ENDED_OK for rdep in rdeps)):
+                    job.state = State.READY
+        return [node for node in self.get_all_nodes(self.node_start) if node.state == State.READY]
 
     def is_dependency_of(self, current: Job, seek: Job) -> bool:
         """
@@ -151,11 +151,11 @@ class Graph:
 
     def write_dot_file(self, root_node: Job=None, filepath: str= 'launch.dot') -> None:
         colorDict = {
-            Status.READY : '[fillcolor=green style=filled]',
-            Status.FAILED: '[fillcolor=red style=filled]',
-            Status.RUNNING: '[fillcolor=blue style=filled]',
-            Status.ENDED_OK: '[fillcolor=blue style=filled]',
-            Status.NOT_READY:'[fillcolor=grey85 style=filled]'
+            State.READY : '[fillcolor=green style=filled]',
+            State.FAILED: '[fillcolor=red style=filled]',
+            State.RUNNING: '[fillcolor=blue style=filled]',
+            State.ENDED_OK: '[fillcolor=blue style=filled]',
+            State.NOT_READY: '[fillcolor=grey85 style=filled]'
         }
         node_colored_written = dict()
         if root_node is None:
@@ -177,11 +177,11 @@ class Graph:
                 if node not in node_colored_written.keys():
                     node_colored_written[node] = 1
                     file.write("{} {}\n".format(
-                        node, ' ' + colorDict[node.status] if node.status in colorDict.keys() else ''))
+                        node, ' ' + colorDict[node.state] if node.state in colorDict.keys() else ''))
                 if current not in node_colored_written.keys():
                     node_colored_written[current] = 1
                     file.write("{} {}\n".format(current,
-                    ' ' + colorDict[current.status] if current.status in colorDict.keys() else ''))
+                    ' ' + colorDict[current.state] if current.state in colorDict.keys() else ''))
                 file.write("\"{}\" -> \"{}\";\n".format(current, node))
                 if node not in visited.keys():
                     stack.append(node)

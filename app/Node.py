@@ -1,35 +1,79 @@
 import logging
 from enum import Enum
+from typing import List, Optional
 
-class Status(Enum):
+
+class State(Enum):
     NOT_READY = 0
     READY = 1
     RUNNING = 2
     FAILED = 3
     ENDED_OK = 4
 
+
 class Action(Enum):
     START = 0
     STOP = 1
     CHECK = 2
 
+
 class ReturnCode(Enum):
     OK = 0
     KO = 1
     UNKNOWN = 255
+    UNDEFINED = -1
+
+
+class BlkCmd(object):
+    pass
+
+
+class Cmd(object):
+    def __init__(self, stdin: str,
+                 on_success: Optional[BlkCmd] = None,
+                 on_failure: Optional[BlkCmd] = None,
+                 always: Optional[BlkCmd] = None,
+                 level: int = 1):
+        self.stdin = stdin
+        self.stdout = None
+        self.stderr = None
+        self.level = level
+        self.on_success = on_success
+        self.on_failure = on_failure
+        self.always = always
+
+
+    def __repr__(self):
+        return '[{}:{}]'.format(self.__class__.__name__,
+                                ','.join(["({}={})".format(k,repr(v)) for k, v in self.__dict__.items()]))
+
+
+class BlkCmd(object):
+    def __init__(self, commands: List[Cmd] = []):
+        self.commands = commands
+        self.return_code = ReturnCode.UNDEFINED
+
+    def __call__(self, *args, **kwargs):
+        for cmd in self.commands:
+            cmd()
+
+    def __repr__(self):
+        return '[{}:{}]'.format(self.__class__.__name__,
+                                ','.join(["({}={})".format(k,repr(v)) for k, v in self.__dict__.items()]))
+
 
 
 class Job(object):
-    def __init__(self, name: str, status: Status=Status.NOT_READY, action: Action=Action.CHECK,
-                 start_cmd: str=None, stop_cmd: str=None, check_cmd: str=None):
+    def __init__(self, name: str, state: State = State.NOT_READY, action: Action = Action.CHECK,
+                 start_cmd: BlkCmd = None, stop_cmd: BlkCmd = None, status: BlkCmd = None):
         self.name = name
-        self.status = status
+        self.state = state
         self.action = action
         self.start_cmd = start_cmd
         self.stop_cmd = stop_cmd
-        self.check_cmd = check_cmd
+        self.status_cmd = status
 
-    def __call__(self, *args, **kwargs) -> Status:
+    def __call__(self, *args, **kwargs) -> State:
         """
         Return 0 if the action occured without issue
         :param args:
@@ -37,7 +81,7 @@ class Job(object):
         :return:
         """
         logging.debug("Calling {}".format(self.name))
-        self.status = Status.RUNNING
+        self.state = State.RUNNING
         if self.action == Action.START:
             rc = self.start(*args, **kwargs)
         elif self.action == Action.STOP:
@@ -47,11 +91,11 @@ class Job(object):
         else:
             raise RuntimeError("Unsupported action on {}".format(self.name))
         if rc == ReturnCode.OK:
-            self.status = Status.ENDED_OK
+            self.state = State.ENDED_OK
         else:
-            self.status = Status.FAILED
+            self.state = State.FAILED
 
-        return self.status
+        return self.state
 
 
     def start(self, *args, **kwargs) -> ReturnCode:
@@ -114,6 +158,11 @@ class Job(object):
         return rc
 
     def __repr__(self):
-        return self.name
+        return '[{}:{}]'.format(self.__class__.__name__,
+                                ','.join(["({}={})".format(k,repr(v)) for k, v in self.__dict__.items()]))
+
+
+
+
 
 
