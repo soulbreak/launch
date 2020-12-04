@@ -9,12 +9,10 @@
                     <on_success>
                         <BlkCmd>
                             <Cmd level="1">
-                                <stdin><![CDATA[echo "start1"]]></stdin>
+                                <stdin><![CDATA[echo "start2"]]></stdin>
                             </Cmd>
                         </BlkCmd>
                     </on_success>
-                    <on_failure></on_failure>
-                    <always></always>
                 </Cmd>
             </BlkCmd>
         </start_cmd>

@@ -1,4 +1,8 @@
 import logging
+import subprocess
+import shlex
+import logging
+log = logging.getLogger()
 from enum import Enum
 from typing import List, Optional
 
@@ -41,6 +45,20 @@ class Cmd(object):
         self.on_success = on_success
         self.on_failure = on_failure
         self.always = always
+        self.return_code = ReturnCode.UNDEFINED
+
+    def __call__(self, *args, **kwargs):
+        """Reset default values"""
+        self.return_code = ReturnCode.UNDEFINED
+        self.stderr = None
+        self.stdout = None
+        _cmd = shlex.split(self.stdin)
+        logging.info("Launching Cmd: {}".format(self.stdin))
+        process = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.stdout, self.stderr = process.communicate()
+        self.return_code = process.returncode
+        logging.info("Cmd RC: {} = {}".format(self.stdin, self.return_code))
+        return self
 
 
     def __repr__(self):
@@ -51,11 +69,24 @@ class Cmd(object):
 class BlkCmd(object):
     def __init__(self, commands: List[Cmd] = []):
         self.commands = commands
-        self.return_code = ReturnCode.UNDEFINED
+        self.return_code = None
+
+    def add_commands(self, cmd: Cmd):
+        self.commands.append(cmd)
 
     def __call__(self, *args, **kwargs):
+        self.return_code = ReturnCode.UNDEFINED
         for cmd in self.commands:
-            cmd()
+            rc = cmd().return_code
+            if self.return_code == ReturnCode.UNDEFINED:
+                self.return_code = rc
+            elif self.return_code == ReturnCode.OK and rc == ReturnCode.OK:
+                pass
+            elif self.return_code == ReturnCode.KO and rc == ReturnCode.KO:
+                pass
+            else:
+                self.return_code = ReturnCode.UNKNOWN
+        return self
 
     def __repr__(self):
         return '[{}:{}]'.format(self.__class__.__name__,
@@ -153,7 +184,7 @@ class Job(object):
     def standalone_check(self, *args, **kwargs) -> ReturnCode:
         rc = ReturnCode.UNKNOWN
         logging.info("Checking {}".format(self.name))
-        rc = ReturnCode.OK
+        rc = self.status_cmd().return_code
         logging.info("Status {} = {}".format(self.name, rc))
         return rc
 
