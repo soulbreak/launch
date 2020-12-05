@@ -1,6 +1,5 @@
 <root>
 
-
     <node name="TEST1">
         <start_cmd>
             <BlkCmd>
@@ -20,19 +19,16 @@
             <BlkCmd>
                 <Cmd level="1">
                     <stdin><![CDATA[echo "stop1"]]></stdin>
-                    <on_success></on_success>
-                    <on_failure></on_failure>
-                    <always></always>
                 </Cmd>
             </BlkCmd>
         </stop_cmd>
         <status_cmd>
            <BlkCmd>
-                <Cmd level="1">
-                    <stdin><![CDATA[echo "status"]]></stdin>
-                    <on_success></on_success>
-                    <on_failure></on_failure>
-                    <always></always>
+                <Cmd level="2">
+                    <stdin><![CDATA[echo "status2"]]></stdin>
+                </Cmd>
+               <Cmd level="1">
+                    <stdin><![CDATA[ls /tmpl]]></stdin>
                 </Cmd>
             </BlkCmd>
         </status_cmd>
