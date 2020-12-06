@@ -1,5 +1,6 @@
 import logging
 import time
+import os
 import subprocess
 import shlex
 import logging
@@ -87,14 +88,17 @@ class Cmd(BlkInput):
         _cmd = shlex.split(self.stdin)
         logging.info("Launching Cmd: {}".format(self.stdin))
         try:
-            process = subprocess.Popen(_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen(_cmd,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE,
+                                       env=os.environ.copy())
             self.stdout, self.stderr = process.communicate()
             self.return_code = ReturnCode.OK if process.returncode == 0 else ReturnCode.KO
         except Exception as e:
             self.stderr = str(e)
             self.return_code = ReturnCode.KO
 
-        logging.info("stdin: \t{}\n\t{}\n\tRC:\n\tstdout:{}\n\tstderr:{}".format(
+        logging.info("\tstdin:{}\n\tRC:{}\n\tstdout:{}\n\tstderr:{}".format(
             self.stdin, self.return_code, self.stdout, self.stderr))
 
     def __repr__(self):

@@ -10,6 +10,10 @@ class ConfigurationManager(object):
         self.tree = ET.parse(self.path_name)
         self.root = self.tree.getroot()
 
+    def display_template(self, template_name):
+        node = self.tree.find("template[@name='{0}']".format(template_name))
+        template = ET.tostring(node)
+
     def load_blkcmd_object(self, node):
         if node is None:
             return
@@ -36,7 +40,7 @@ class ConfigurationManager(object):
             myBlkCmd.add_commands(blkinput_obj)
         return myBlkCmd
 
-    def load(self) -> List[Job]:
+    def load_all_templates(self) -> List[Job]:
         created = list()
         for node in self.root.findall('template'):
             j = Job(node.attrib.get('name'))
@@ -50,6 +54,17 @@ class ConfigurationManager(object):
             created.append(j)
         return created
 
-
+    def load_node(self, node_name):
+        node = self.root.find("node[@name='{0}']".format(node_name))
+        if node is None:
+            logging.fatal("{0} does not exist")
+        job = Job(node_name)
+        template = node.attrib.get('template')
+        property_dict = dict()
+        for property in node.findall('property'):
+            name = property.attrib['name']
+            text = property.text
+            property_dict[name] = text
+        return job
 
 
