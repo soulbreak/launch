@@ -1,6 +1,6 @@
 import threading, queue
 from Workflow.Structure import Graph
-from Node import State, Action
+from Node import State
 import logging
 log = logging.getLogger()
 q = queue.Queue()
@@ -48,11 +48,12 @@ class Worker(threading.Thread):
 
 def run(graph: Graph):
     pool = ThreadPool(4)
+    trigger = 'start'
     while graph.node_end.state != State.ENDED_OK:
         jobs = graph.get_jobs_ready()
         if jobs:
             [setattr(job, 'status', State.RUNNING) for job in jobs]
-            [setattr(job, 'action', Action.START) for job in jobs]
+            [setattr(job, 'trigger', trigger) for job in jobs]
             log.info(f"Launching jobs : {jobs}")
             for job in jobs:
                 pool.add_task(job)

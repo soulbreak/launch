@@ -1,4 +1,5 @@
 import logging
+import time
 import subprocess
 import shlex
 import logging
@@ -106,6 +107,9 @@ class BlkCmd(object):
         self.blkinputs = list()
         self.return_code = None
         self.maxtime = None
+        self.retry_end_on_rc = None
+        self.maxtime = 0
+        self.sleep = 2
         self.frequency = None
         self.predicate_start_cmd = 0
         self.predicate_stop_cmd = 1
@@ -114,18 +118,31 @@ class BlkCmd(object):
         self.blkinputs.append(blkinput)
 
     def __call__(self, *args, **kwargs):
+        start_block_time = time.time()
         self.return_code = ReturnCode.UNDEFINED
-        for cmd in sorted(self.blkinputs, key=lambda x: x.level):
-            cmd()
-            rc = cmd.return_code
-            if self.return_code == ReturnCode.UNDEFINED:
-                self.return_code = rc
-            elif self.return_code == ReturnCode.OK and rc == ReturnCode.OK:
-                pass
-            elif self.return_code == ReturnCode.KO and rc == ReturnCode.KO:
-                pass
+        while self.return_code != self.retry_end_on_rc:
+            self.return_code = ReturnCode.UNDEFINED
+            for cmd in sorted(self.blkinputs, key=lambda x: x.level):
+                cmd()
+                rc = cmd.return_code
+                if self.return_code == ReturnCode.UNDEFINED:
+                    self.return_code = rc
+                elif self.return_code == ReturnCode.OK and rc == ReturnCode.OK:
+                    pass
+                elif self.return_code == ReturnCode.KO and rc == ReturnCode.KO:
+                    pass
+                else:
+                    self.return_code = ReturnCode.UNKNOWN
+            current_block_time = time.time()
+            if self.maxtime == 0:
+                break
+            elif (current_block_time - start_block_time) > self.maxtime:
+                logging.debug("We reached the end of the loop")
+                break
             else:
-                self.return_code = ReturnCode.UNKNOWN
+                logging.info("Sleeping {0} second(s)".format(self.sleep))
+                time.sleep(self.sleep)
+
         return self
 
     def __repr__(self):
@@ -135,10 +152,10 @@ class BlkCmd(object):
 
 
 class Job(object):
-    def __init__(self, name: str, state: State = State.NOT_READY):
+    def __init__(self, name: str, state: State = State.NOT_READY, trigger: str = None):
         self.name = name
         self.state = state
-
+        self.trigger = trigger
 
     def __call__(self, trigger_name) -> 'Job':
         logging.debug("Calling {}".format(self.name))

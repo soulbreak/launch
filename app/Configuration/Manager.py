@@ -13,7 +13,13 @@ class ConfigurationManager(object):
     def load_blkcmd_object(self, node):
         if node is None:
             return
+        block_attribs = ['retry_end_on_rc', 'maxtime', 'sleep']
         myBlkCmd = BlkCmd()
+
+        for attrib in block_attribs:
+            if attrib in node.attrib:
+                setattr(myBlkCmd, attrib, int(node.attrib[attrib]))
+
         for blkinput in list(node):
             blkinput_obj = None
             if blkinput.tag == 'Cmd':
