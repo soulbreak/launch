@@ -7,4 +7,4 @@ if __name__ == '__main__':
     cm = ConfigurationManager(f'/home/soulbreak/PycharmProjects/launch/conf.xml')
     jobs = cm.load()
     job1 = jobs.pop()
-    job1.start()
+    job1('start')

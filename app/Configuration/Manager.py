@@ -1,5 +1,5 @@
 import xml.etree.ElementTree as ET
-from Node import Job, BlkCmd, Cmd
+from Node import Job, BlkCmd, Cmd, Msg
 from typing import List
 import logging
 log = logging.getLogger()
@@ -14,31 +14,33 @@ class ConfigurationManager(object):
         if node is None:
             return
         myBlkCmd = BlkCmd()
-        for cmd_node in list(node):
-            if cmd_node.find('stdin') is None:
-                log.fatal("Cmd need at least a stdin element")
-            cmd = Cmd(cmd_node.find('stdin').text)
-            cmd.level = cmd_node.attrib.get('level', 1)
-            if cmd_node.find('on_success'):
-                cmd.on_success = self.load_blkcmd_object(cmd_node.find('on_success/BlkCmd'))
-            if cmd_node.find('on_failure'):
-                cmd.on_failure = self.load_blkcmd_object(cmd_node.find('on_failure/BlkCmd'))
-            if cmd_node.find('always'):
-                cmd.always = self.load_blkcmd_object(cmd_node.find('always/BlkCmd'))
-            myBlkCmd.add_commands(cmd)
+        for blkinput in list(node):
+            blkinput_obj = None
+            if blkinput.tag == 'Cmd':
+                blkinput_obj = Cmd(blkinput.find('stdin').text)
+            elif blkinput.tag == 'Msg':
+                blkinput_obj = Msg(blkinput.find('stdin').text)
+
+            if blkinput.find('on_success'):
+                blkinput_obj.on_success = self.load_blkcmd_object(blkinput.find('on_success/BlkCmd'))
+            if blkinput.find('on_failure'):
+                blkinput_obj.on_failure = self.load_blkcmd_object(blkinput.find('on_failure/BlkCmd'))
+            if blkinput.find('always'):
+                blkinput_obj.always = self.load_blkcmd_object(blkinput.find('always/BlkCmd'))
+            myBlkCmd.add_commands(blkinput_obj)
         return myBlkCmd
 
     def load(self) -> List[Job]:
         created = list()
-        element = ['start_cmd', 'stop_cmd', 'status_cmd']
-        for node in self.root.findall('node'):
+        for node in self.root.findall('template'):
             j = Job(node.attrib.get('name'))
-            for elm in element:
-                if node.find(elm + '/BlkCmd') is not None:
-                    blk_to_load = node.find(elm + '/BlkCmd')
-                    setattr(j, elm, self.load_blkcmd_object(blk_to_load))
+            for item in node.findall('trigger'):
+                logging.debug("Loading {}".format(item.attrib['name']))
+                if item.find('BlkCmd') is not None:
+                    blk_to_load = item.find('BlkCmd')
+                    setattr(j, item.attrib['name'], self.load_blkcmd_object(blk_to_load))
                 else:
-                    log.error('BlkCmd is missing in node {}'.format(elm))
+                    log.error('BlkCmd is missing in node {}'.format(item.attrib['name']))
             created.append(j)
         return created
 

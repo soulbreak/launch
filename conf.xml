@@ -1,36 +1,41 @@
 <root>
-
-    <node name="TEST1">
-        <start_cmd>
+    <template name="TEMPLATE1">
+        <trigger name="start">
             <BlkCmd>
                 <Cmd level="1">
-                    <stdin><![CDATA[echo "start1"]]></stdin>
+                    <stdin><![CDATA[echso "check1"]]></stdin>
                     <on_success>
                         <BlkCmd>
-                            <Cmd level="1">
-                                <stdin><![CDATA[echo "start2"]]></stdin>
-                            </Cmd>
+                            <Msg level="1">
+                                <stdin><![CDATA[Already started]]></stdin>
+                            </Msg>
                         </BlkCmd>
                     </on_success>
+                    <on_failure>
+                        <BlkCmd>
+                            <Cmd level="1">
+                                <stdin><![CDATA[echo "start1"]]></stdin>
+                                <always>
+                                    <BlkCmd>
+                                        <Cmd level="1">
+                                            <stdin><![CDATA[echo "check1"]]></stdin>
+                                            <on_success return="0"></on_success>
+                                            <on_failure return="1"></on_failure>
+                                        </Cmd>
+                                    </BlkCmd>
+                                </always>
+                            </Cmd>
+                        </BlkCmd>
+                    </on_failure>
                 </Cmd>
             </BlkCmd>
-        </start_cmd>
-        <stop_cmd level="1">
+        </trigger>
+        <trigger name="stop" level="1">
             <BlkCmd>
                 <Cmd level="1">
                     <stdin><![CDATA[echo "stop1"]]></stdin>
                 </Cmd>
             </BlkCmd>
-        </stop_cmd>
-        <status_cmd>
-           <BlkCmd>
-                <Cmd level="2">
-                    <stdin><![CDATA[echo "status2"]]></stdin>
-                </Cmd>
-               <Cmd level="1">
-                    <stdin><![CDATA[ls /tmpl]]></stdin>
-                </Cmd>
-            </BlkCmd>
-        </status_cmd>
-    </node>
+        </trigger>
+    </template>
 </root>
