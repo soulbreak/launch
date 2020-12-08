@@ -9,7 +9,6 @@
     </node>
 
 
-
     <template name="template_test">
         <trigger name="start">
             <BlkCmd>

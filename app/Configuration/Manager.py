@@ -1,4 +1,5 @@
 import xml.etree.ElementTree as ET
+import re
 from Node import Job, BlkCmd, Cmd, Msg
 from typing import List
 import logging
@@ -61,10 +62,35 @@ class ConfigurationManager(object):
         job = Job(node_name)
         template = node.attrib.get('template')
         property_dict = dict()
+        stack = []
         for property in node.findall('property'):
-            name = property.attrib['name']
             text = property.text
-            property_dict[name] = text
+            name = property.attrib['name']
+            stack.append((name, text))
+        solved = True
+        while solved:
+            solved = False
+            name, text = stack.pop()
+            matches = re.findall("({{\s*\w+\s*}})",text)
+            if len(matches) == 0:
+                property_dict[name] = text
+                solved = True
+            else:
+                for match in matches:
+                    properties = re.findall("\w+", match)
+                    current_solved = 0
+                    if property in property_dict.keys():
+                        text = re.sub(match, property_dict[property], text)
+                        logging.debug("{} replaced by {}".format(match, text))
+                        solved = True
+                        current_solved += 1
+                    else:
+                        stack.append((name, text))
+                        break
+                    property_dict[name] = text
+        if len(stack) != 0:
+            logging.fatal("Unsolved properties : {}".format(stack))
+        logging.info("Properties loaded : {}".format(property_dict))
         return job
 
 
