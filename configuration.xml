@@ -3,9 +3,10 @@
           groups="tests"
           template="template_test">
 
-        <property name="check"><![CDATA[ps aux | grep {{ process_pattern }}]]></property>
-        <property name="process_pattern"><![CDATA[my_process]]></property>
-        <property name="start"><![CDATA[start ${HOME}]]></property>
+        <const name="check"><![CDATA[ps aux | grep {{ process_pattern }}]]></const>
+        <const name="process_pattern"><![CDATA[my_process {{ ok }}]]></const>
+        <const name="start"><![CDATA[start ${HOME}]]></const>
+        <const name="ok"><![CDATA[{{ in  }}--]]></const>
     </node>
 
 
