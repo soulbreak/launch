@@ -6,6 +6,11 @@ import logging
 import json
 log = logging.getLogger()
 
+
+class ConfigurationException(Exception):
+    pass
+
+
 class ConfigurationManager(object):
     def __init__(self, path_name):
         self.path_name = path_name
@@ -24,21 +29,24 @@ class ConfigurationManager(object):
 
         for attrib in block_attribs:
             if attrib in node.attrib:
-                setattr(myBlkCmd, attrib, int(node.attrib[attrib]))
+                value = ConfigurationManager.properties_replace_all(node.attrib[attrib], properties)
+                if not value.isnumeric():
+                    raise ConfigurationException("{} is not numeric".format(value))
+                setattr(myBlkCmd, attrib, int(value))
 
         for blkinput in list(node):
             blkinput_obj = None
             if blkinput.tag == 'Cmd':
-                blkinput_obj = Cmd(blkinput.find('stdin').text)
+                blkinput_obj = Cmd(ConfigurationManager.properties_replace_all(blkinput.find('stdin').text, properties))
             elif blkinput.tag == 'Msg':
-                blkinput_obj = Msg(blkinput.find('stdin').text)
+                blkinput_obj = Msg(ConfigurationManager.properties_replace_all(blkinput.find('stdin').text, properties))
 
             if blkinput.find('on_success'):
-                blkinput_obj.on_success = self.load_blkcmd_object(blkinput.find('on_success/BlkCmd'))
+                blkinput_obj.on_success = self.load_blkcmd_object(blkinput.find('on_success/BlkCmd'), properties)
             if blkinput.find('on_failure'):
-                blkinput_obj.on_failure = self.load_blkcmd_object(blkinput.find('on_failure/BlkCmd'))
+                blkinput_obj.on_failure = self.load_blkcmd_object(blkinput.find('on_failure/BlkCmd'), properties)
             if blkinput.find('always'):
-                blkinput_obj.always = self.load_blkcmd_object(blkinput.find('always/BlkCmd'))
+                blkinput_obj.always = self.load_blkcmd_object(blkinput.find('always/BlkCmd'), properties)
             myBlkCmd.add_commands(blkinput_obj)
         return myBlkCmd
 
@@ -56,18 +64,36 @@ class ConfigurationManager(object):
             created.append(j)
         return created
 
+    @staticmethod
+    def properties_replace_all(text, properties):
+        logging.debug("properties_replace_all <- (in) {}".format(text))
+        matches = re.findall("({{\s*\w+\s*}})", text)
+        if len(matches) != 0:
+            if properties is None:
+                raise RuntimeError("properties_replace_all requires properties")
+            for match in matches:
+                variable = re.findall("\w+", match)
+                if len(variable) != 1:
+                    raise ConfigurationException("Bad variable name {}".format(variable))
+                variable = variable[0]
+                if variable in properties.keys():
+                    text = re.sub(match, properties[variable]['text'], text)
+                else:
+                    raise ConfigurationException("Variable \"{}\" is missing in the injection".format(variable))
+        logging.debug("properties_replace_all -> (out) {}".format(text))
+        return text
 
     def load_instance(self, job, template_name, properties) -> Job:
         created = list()
         node = self.root.findall("template[@name='{}']".format(template_name))
         if len(node) != 1:
-            raise RuntimeError("template[@name='{}'] != 1".format(template_name))
+            raise ConfigurationException("template[@name='{}'] != 1".format(template_name))
     
-        for item in node.findall('trigger'):
+        for item in node[0].findall('trigger'):
             logging.debug("Loading {}".format(item.attrib['name']))
             if item.find('BlkCmd') is not None:
                 blk_to_load = item.find('BlkCmd')
-                setattr(job, item.attrib['name'], self.load_blkcmd_object(blk_to_load))
+                setattr(job, item.attrib['name'], self.load_blkcmd_object(blk_to_load, properties))
             else:
                 log.error('BlkCmd is missing in node {}'.format(item.attrib['name']))
         created.append(job)
@@ -122,7 +148,7 @@ class ConfigurationManager(object):
     def load_node(self, node_name):
         node = self.root.find("node[@name='{0}']".format(node_name))
         if node is None:
-            logging.fatal("{0} does not exist")
+            raise ConfigurationException("Node \"{0}\" does not exist".format(node_name))
         job = Job(node_name)
         template = node.attrib.get('template')
 

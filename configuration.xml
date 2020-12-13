@@ -3,10 +3,10 @@
           groups="tests"
           template="template_test">
 
-        <const name="check"><![CDATA[ps aux | grep {{ process_pattern }}]]></const>
-        <const name="process_pattern"><![CDATA[my_process {{ ok }}]]></const>
+        <const name="check"><![CDATA[ps aux ]]></const>
+        <const name="process_pattern"><![CDATA[my_process]]></const>
         <const name="start"><![CDATA[start ${HOME}]]></const>
-        <const name="ok"><![CDATA[{{ in  }}--]]></const>
+        <const name="maxtime"><![CDATA[456]]></const>
     </node>
 
 
@@ -14,7 +14,7 @@
         <trigger name="start">
             <BlkCmd>
                 <Cmd level="1">
-                    <stdin><![CDATA[echo ${HOME}]]></stdin>
+                    <stdin><![CDATA[ps aux |grep {{ process_pattern }}]]></stdin>
                     <on_success>
                         <BlkCmd>
                             <Msg level="1">
@@ -27,9 +27,9 @@
                             <Cmd level="1">
                                 <stdin><![CDATA[echo "start1"]]></stdin>
                                 <always>
-                                    <BlkCmd maxtime="5" sleep="2" retry_end_on_rc="1">
+                                    <BlkCmd maxtime="{{ maxtime }}" sleep="2" retry_end_on_rc="1">
                                         <Cmd level="1">
-                                            <stdin><![CDATA[echo "check1"]]></stdin>
+                                            <stdin><![CDATA[ps aux |grep {{ process_pattern }}]]></stdin>
                                         </Cmd>
                                     </BlkCmd>
                                 </always>

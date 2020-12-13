@@ -4,11 +4,13 @@ import os
 import subprocess
 import shlex
 import logging
+import json
 log = logging.getLogger()
-from enum import Enum
+from enum import Enum, IntEnum
+from Utils.encoder import decode_dict
 
 
-class State(Enum):
+class State(IntEnum):
     NOT_READY = 0
     READY = 1
     RUNNING = 2
@@ -16,11 +18,12 @@ class State(Enum):
     ENDED_OK = 4
 
 
-class ReturnCode(Enum):
+class ReturnCode(IntEnum):
     OK = 0
     KO = 1
     UNKNOWN = 255
     UNDEFINED = -1
+
 
 
 class BlkCmd(object):
@@ -78,6 +81,7 @@ class Cmd(BlkInput):
         self.stdin = stdin
         self.stdout = None
         self.stderr = None
+        self.shellTrue = False
 
 
     def _call(self):
@@ -85,25 +89,36 @@ class Cmd(BlkInput):
         self.return_code = ReturnCode.UNDEFINED
         self.stderr = None
         self.stdout = None
-        _cmd = shlex.split(self.stdin)
+        _cmd = None
+        if "|" in self.stdin:
+            self.shellTrue = True
+            _cmd = self.stdin
+        else:
+            _cmd = shlex.split(self.stdin)
         logging.info("Launching Cmd: {}".format(self.stdin))
         try:
             process = subprocess.Popen(_cmd,
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.PIPE,
-                                       env=os.environ.copy())
+                                       env=os.environ.copy(),
+                                       shell=self.shellTrue)
             self.stdout, self.stderr = process.communicate()
             self.return_code = ReturnCode.OK if process.returncode == 0 else ReturnCode.KO
         except Exception as e:
             self.stderr = str(e)
             self.return_code = ReturnCode.KO
+        finally:
+            self.shellTrue = False
 
         logging.info("\tstdin:{}\n\tRC:{}\n\tstdout:{}\n\tstderr:{}".format(
             self.stdin, self.return_code, self.stdout, self.stderr))
 
     def __repr__(self):
         return '[{}:{}]'.format(self.__class__.__name__,
-                                ','.join(["({}={})".format(k,repr(v)) for k, v in self.__dict__.items()]))
+                                json.dumps(
+                                    decode_dict(self.__dict__),
+                                    sort_keys=True,
+                                    indent=4))
 
 
 class BlkCmd(object):
@@ -151,9 +166,10 @@ class BlkCmd(object):
 
     def __repr__(self):
         return '[{}:{}]'.format(self.__class__.__name__,
-                                ','.join(["({}={})".format(k,repr(v)) for k, v in self.__dict__.items()]))
-
-
+                                json.dumps(
+                                    decode_dict(self.__dict__),
+                                    sort_keys=True,
+                                    indent=4))
 
 class Job(object):
     def __init__(self, name: str, state: State = State.NOT_READY, trigger: str = None):
@@ -178,9 +194,10 @@ class Job(object):
 
     def __repr__(self):
         return '[{}:{}]'.format(self.__class__.__name__,
-                                ','.join(["({}={})".format(k,repr(v)) for k, v in self.__dict__.items()]))
-
-
+                                json.dumps(
+                                    decode_dict(self.__dict__),
+                                    sort_keys=True,
+                                    indent=4))
 
 
 

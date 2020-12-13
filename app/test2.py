@@ -1,5 +1,6 @@
-from string import Template
-import os
+from Node import Cmd
 
 
-print("")
+cmd = Cmd("ps aux |grep ok")
+cmd()
+print(cmd)
