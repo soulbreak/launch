@@ -1,4 +1,6 @@
 from Configuration.Manager import ConfigurationManager
+from Workflow.Execution import run
+from Workflow.Structure import Graph
 
 if __name__ == '__main__':
     import logging.config
@@ -7,5 +9,6 @@ if __name__ == '__main__':
     cm = ConfigurationManager(f'../configuration.xml')
     cm.display_template('template_test')
     #jobs = cm.load_all_templates()
-    job = cm.load_node('test')
-    job('start')
+    graph = Graph()
+    cm.load_nodes_with_dependencies(graph, ["test"])
+    run(graph, 'start')

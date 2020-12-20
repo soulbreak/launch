@@ -46,9 +46,9 @@ class Worker(threading.Thread):
             finally:
                 self.tasks.task_done()
 
-def run(graph: Graph):
+def run(graph: Graph, trigger: str):
     pool = ThreadPool(4)
-    trigger = 'start'
+    logging.info("Running Graph's trigger \"{0}\"".format(trigger))
     while graph.node_end.state != State.ENDED_OK:
         jobs = graph.get_jobs_ready()
         if jobs:

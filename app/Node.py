@@ -115,10 +115,7 @@ class Cmd(BlkInput):
 
     def __repr__(self):
         return '[{}:{}]'.format(self.__class__.__name__,
-                                json.dumps(
-                                    decode_dict(self.__dict__),
-                                    sort_keys=True,
-                                    indent=4))
+                                ','.join(["({}={})".format(k, repr(v)) for k, v in self.__dict__.items()]))
 
 
 class BlkCmd(object):
@@ -166,10 +163,8 @@ class BlkCmd(object):
 
     def __repr__(self):
         return '[{}:{}]'.format(self.__class__.__name__,
-                                json.dumps(
-                                    decode_dict(self.__dict__),
-                                    sort_keys=True,
-                                    indent=4))
+                                ','.join(["({}={})".format(k, repr(v)) for k, v in self.__dict__.items()]))
+
 
 class Job(object):
     def __init__(self, name: str, state: State = State.NOT_READY, trigger: str = None):
@@ -177,27 +172,24 @@ class Job(object):
         self.state = state
         self.trigger = trigger
 
-    def __call__(self, trigger_name) -> 'Job':
-        logging.debug("Calling {}".format(self.name))
-        trigger_blk = getattr(self, trigger_name, None)
+    def __call__(self) -> 'Job':
+
+        logging.debug("Calling \"{}\" with trigger \"{}\"".format(self.name, self.trigger))
+        trigger_blk = getattr(self, self.trigger, None)
         self.state = State.RUNNING
         if trigger_blk:
             rc = trigger_blk()
         else:
-            raise RuntimeError("Trigger {0} on {1} does not exist".format(trigger_name, self.name))
+            raise RuntimeError("Trigger {0} on {1} does not exist".format(self.trigger, self.name))
         if rc == ReturnCode.OK:
             self.state = State.ENDED_OK
         else:
             self.state = State.FAILED
         return self
 
-
     def __repr__(self):
         return '[{}:{}]'.format(self.__class__.__name__,
-                                json.dumps(
-                                    decode_dict(self.__dict__),
-                                    sort_keys=True,
-                                    indent=4))
+                                ','.join(["({}={})".format(k, repr(v)) for k, v in self.__dict__.items()]))
 
 
 

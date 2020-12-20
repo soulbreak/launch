@@ -4,6 +4,9 @@ from Node import Job, BlkCmd, Cmd, Msg
 from typing import List
 import logging
 import json
+
+from Workflow.Structure import Graph
+
 log = logging.getLogger()
 
 
@@ -144,6 +147,11 @@ class ConfigurationManager(object):
                     indent=4))
             )
 
+    def load_nodes_with_dependencies(self, graph: Graph, node_names: List[str]):
+        job = self.load_node('test')
+        graph.add_dependencies(job, [])
+        graph.build_reverse_dependencies()
+
 
     def load_node(self, node_name):
         node = self.root.find("node[@name='{0}']".format(node_name))
@@ -151,8 +159,15 @@ class ConfigurationManager(object):
             raise ConfigurationException("Node \"{0}\" does not exist".format(node_name))
         job = Job(node_name)
         template = node.attrib.get('template')
+        groups = node.attrib.get('groups')
 
         properties = dict()
+        # Hardcoded properties
+        properties["name"] = {'text': node_name, 'solved': True}
+        properties["template"] = {'text': template, 'solved': True}
+        if groups:
+            properties["groups"] = {'text': groups, 'solved': True}
+
         for prop in node.findall('const'):
             text = prop.text
             name = prop.attrib['name']
